@@ -7,7 +7,6 @@
 #
 from __future__ import print_function
 
-import aiohttp
 import asyncio
 import json
 import os
@@ -16,6 +15,8 @@ import time
 from random import random
 from threading import Event, Thread
 from urllib.parse import urlparse
+
+import aiohttp
 import requests
 from socketIO_client_nexus import BaseNamespace, SocketIO
 from sseclient import SSEClient
