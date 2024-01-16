@@ -11,6 +11,7 @@ from ..common import (
     PyEXception,
     _dateRange,
     _get,
+    _getAsync,
     _quoteSymbols,
     _strOrDate,
     _toDatetime,
@@ -33,6 +34,103 @@ def timeSeriesInventoryDF(*args, **kwargs):
     return json_normalize(timeSeriesInventory(*args, **kwargs))
 
 
+@wraps(timeSeriesInventory)
+async def timeSeriesInventoryAsync(
+    token="", version="stable", filter="", format="json"
+):
+    return await _getAsync(
+        "time-series/", token=token, version=version, filter=filter, format=format
+    )
+
+
+def _timeSeriesURL(
+    id="",
+    key="",
+    subkey="",
+    range=None,
+    calendar=False,
+    limit=1,
+    offset=0,
+    subattribute="",
+    dateField=None,
+    from_=None,
+    to_=None,
+    on=None,
+    last=0,
+    first=0,
+    sort="",
+    interval=None,
+    overrideBase="",
+    **extra_params,
+):
+    base_url = "{}/{}".format(overrideBase or "time-series", id)
+    if key:
+        base_url += "/{}".format(_quoteSymbols(key))
+    if subkey:
+        base_url += "/{}".format(_quoteSymbols(subkey))
+    base_url += "?"
+
+    if range:
+        base_url += "range={}&".format(_dateRange(range))
+
+    if calendar:
+        base_url += "calendar={}&".format(str(calendar))
+
+    if not last and (not from_ or not to_):
+        base_url += "limit={}&".format(str(limit))
+
+    if offset > 0:
+        base_url += "offset={}&".format(offset)
+
+    if subattribute:
+        if isinstance(subattribute, dict):
+            # dict mapping key to required equal value, e.g. {"A": 1} -> A|1
+            subattribute = ",".join(
+                "{}|{}".format(key, value) for key, value in subattribute.items()
+            )
+        elif isinstance(subattribute, list):
+            # list of tuples mapping key to required equal value, e.g. [("A", "=", 1), ("B", "!=", 2)] -> A|1,B~2
+            subattribute = ",".join(
+                "{}{}{}".format(v1, "|" if v2.upper() == "=" else "~", v3)
+                for v1, v2, v3 in subattribute
+            )
+        base_url += "subattribute={}&".format(subattribute)
+
+    if dateField:
+        base_url += "dateField={}&".format(dateField)
+
+    if from_:
+        base_url += "from={}&".format(_strOrDate(from_))
+
+    if to_:
+        base_url += "to={}&".format(_strOrDate(to_))
+
+    if on:
+        base_url += "on={}&".format(_strOrDate(on))
+
+    if last:
+        base_url += "last={}&".format(str(last))
+
+    if first:
+        base_url += "first={}&".format(str(first))
+
+    if sort:
+        if sort.lower() not in (
+            "asc",
+            "desc",
+        ):
+            raise PyEXception("Sort must be in (asc, desc), got: {}".format(sort))
+        base_url += "sort={}&".format(sort)
+
+    if interval:
+        base_url += "interval={}&".format(int(interval))
+
+    if extra_params:
+        base_url += "&".join("{}={}".format(k, v) for k, v in extra_params.items())
+
+    return base_url
+
+
 def timeSeries(
     id="",
     key="",
@@ -48,10 +146,12 @@ def timeSeries(
     last=0,
     first=0,
     sort="",
+    interval=None,
     token="",
     version="stable",
     filter="",
     format="json",
+    overrideBase="",
     **extra_params,
 ):
     """Time series is the most common type of data available, and consists of a collection of data points over a period of time. Time series data is indexed by a single date field, and can be retrieved by any portion of time.
@@ -69,7 +169,7 @@ def timeSeries(
                             For example, news may be stored as /news/{symbol}/{newsId}, and the result data returns the keys id, symbol, date, sector, hasPaywall
                             By default you can only query by symbol or id. Maybe you want to query all news where the sector is Technology. Your query would be:
                             /time-series/news?subattribute=source|WSJ
-                            The syntax is subattribute={keyName}|{value}. Both the key name and the value are case sensitive. A pipe symbol is used to represent ‘equal to’.
+                            The syntax is subattribute={keyName}|{value} or {keyName}~{value}. Both the key name and the value are case sensitive. A pipe symbol `|` is used to represent ‘equal to’ and the tilde `~` is used to represent "not equal to".
         dateField (str or datetime): All time series data is stored by a single date field, and that field is used for any range or date parameters. You may want to query time series data by a different date in the result set. To change the date field used by range queries, pass the case sensitive field name with this parameter.
                                      For example, corporate buy back data may be stored by announce date, but also contains an end date which you’d rather query by. To query by end date you would use dateField=endDate&range=last-week
         from_ (str or datetime): Returns data on or after the given from date. Format YYYY-MM-DD
@@ -78,6 +178,7 @@ def timeSeries(
         last (int): Returns the latest n number of records in the series
         first (int): Returns the first n number of records in the series
         sort (str): Order of results
+        interval (int): interval to use
         token (str): Access token
         version (str): API version
         filter (str): filters: https://iexcloud.io/docs/api/#filter-results
@@ -130,59 +231,25 @@ def timeSeries(
             token=token, version=version, filter=filter, format=format
         )
 
-    base_url = "time-series/{}".format(id)
-    if key:
-        key = _quoteSymbols(key)
-        base_url += "/{}".format(key)
-    if subkey:
-        subkey = _quoteSymbols(subkey)
-        base_url += "/{}".format(subkey)
-    base_url += "?"
-
-    if range:
-        range = _dateRange(range)
-        base_url += "range={}&".format(range)
-
-    if calendar:
-        base_url += "calendar={}&".format(str(calendar))
-
-    if not last and (not from_ or not to_):
-        base_url += "limit={}&".format(str(limit))
-
-    if subattribute:
-        if isinstance(subattribute, dict):
-            # dict mapping key to required equal value, e.g. {"A": 1} -> A|1
-            subattribute = ",".join(
-                "{}|{}".format(key, value) for key, value in subattribute.items()
-            )
-        elif isinstance(subattribute, list):
-            # list of tuples mapping key to required equal value, e.g. [("A", 1)] -> A|1
-            subattribute = ",".join("{}|{}".format(v1, v2) for v1, v2 in subattribute)
-        base_url += "subattribute={}&".format(subattribute)
-    if dateField:
-        base_url += "dateField={}&".format(dateField)
-
-    if from_:
-        base_url += "from={}&".format(_strOrDate(from_))
-    if to_:
-        base_url += "to={}&".format(_strOrDate(to_))
-    if on:
-        base_url += "on={}&".format(_strOrDate(on))
-    if last:
-        base_url += "last={}&".format(str(last))
-    if first:
-        base_url += "first={}&".format(str(first))
-    if sort:
-        if sort.lower() not in (
-            "asc",
-            "desc",
-        ):
-            raise PyEXception("Sort must be in (asc, desc), got: {}".format(sort))
-        base_url += "sort={}&".format(sort)
-
-    if extra_params:
-        base_url += "&".join("{}={}".format(k, v) for k, v in extra_params.items())
-
+    base_url = _timeSeriesURL(
+        id=id,
+        key=key,
+        subkey=subkey,
+        range=range,
+        calendar=calendar,
+        limit=limit,
+        subattribute=subattribute,
+        dateField=dateField,
+        from_=from_,
+        to_=to_,
+        on=on,
+        last=last,
+        first=first,
+        sort=sort,
+        interval=interval,
+        overrideBase=overrideBase,
+        **extra_params,
+    )
     return _get(base_url, token=token, version=version, filter=filter, format=format)
 
 
@@ -191,4 +258,57 @@ def timeSeriesDF(*args, **kwargs):
     return _toDatetime(
         json_normalize(timeSeries(*args, **kwargs)),
         reformatcols=["datetime", "date", "updated"],
+    )
+
+
+@wraps(timeSeries)
+async def timeSeriesAsync(
+    id="",
+    key="",
+    subkey="",
+    range=None,
+    calendar=False,
+    limit=1,
+    subattribute="",
+    dateField=None,
+    from_=None,
+    to_=None,
+    on=None,
+    last=0,
+    first=0,
+    sort="",
+    interval=None,
+    token="",
+    version="stable",
+    filter="",
+    format="json",
+    overrideBase="",
+    **extra_params,
+):
+    if not id:
+        return await timeSeriesInventoryAsync(
+            token=token, version=version, filter=filter, format=format
+        )
+
+    base_url = _timeSeriesURL(
+        id=id,
+        key=key,
+        subkey=subkey,
+        range=range,
+        calendar=calendar,
+        limit=limit,
+        subattribute=subattribute,
+        dateField=dateField,
+        from_=from_,
+        to_=to_,
+        on=on,
+        last=last,
+        first=first,
+        sort=sort,
+        interval=interval,
+        overrideBase=overrideBase,
+        **extra_params,
+    )
+    return await _getAsync(
+        base_url, token=token, version=version, filter=filter, format=format
     )

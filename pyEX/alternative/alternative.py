@@ -10,12 +10,11 @@ from functools import wraps
 import pandas as pd
 
 from ..common import (
-    _expire,
     _get,
+    _getAsync,
     _raiseIfNotStr,
     _strOrDate,
     _toDatetime,
-    json_normalize,
 )
 
 
@@ -67,22 +66,24 @@ def sentiment(
 
 
 @wraps(sentiment)
-def sentimentDF(*args, **kwargs):
-    ret = sentiment(*args, **kwargs)
-    if type == "daily":
-        ret = [ret]
-    return _toDatetime(pd.DataFrame(ret))
+async def sentimentAsync(
+    symbol,
+    type="daily",
+    date=None,
+    token="",
+    version="stable",
+    filter="",
+    format="json",
+):
+    """This endpoint provides social sentiment data from StockTwits. Data can be viewed as a daily value, or by minute for a given date.
 
-
-@_expire(hour=1)
-def ceoCompensation(symbol, token="", version="stable", filter="", format="json"):
-    """This endpoint provides CEO compensation for a company by symbol.
-
-    https://iexcloud.io/docs/api/#ceo-compensation
-    1am daily
+    https://iexcloud.io/docs/api/#social-sentiment
+    Continuous
 
     Args:
         symbol (str): Ticker to request
+        type (str): 'daily' or 'minute'
+        date (str): date in YYYYMMDD or datetime
         token (str): Access token
         version (str): API version
         filter (str): filters: https://iexcloud.io/docs/api/#filter-results
@@ -92,11 +93,29 @@ def ceoCompensation(symbol, token="", version="stable", filter="", format="json"
         dict or DataFrame: result
     """
     _raiseIfNotStr(symbol)
-    return _get(
-        "stock/{symbol}/ceo-compensation".format(symbol=symbol), token, version, filter
+    if date:
+        date = _strOrDate(date)
+        return _get(
+            "stock/{symbol}/sentiment/{type}/{date}".format(
+                symbol=symbol, type=type, date=date
+            ),
+            token=token,
+            version=version,
+            filter=filter,
+            format=format,
+        )
+    return await _getAsync(
+        "stock/{symbol}/sentiment/{type}/".format(symbol=symbol, type=type),
+        token=token,
+        version=version,
+        filter=filter,
+        format=format,
     )
 
 
-@wraps(ceoCompensation)
-def ceoCompensationDF(*args, **kwargs):
-    return _toDatetime(json_normalize(ceoCompensation(*args, **kwargs)))
+@wraps(sentiment)
+def sentimentDF(*args, **kwargs):
+    ret = sentiment(*args, **kwargs)
+    if type == "daily":
+        ret = [ret]
+    return _toDatetime(pd.DataFrame(ret))

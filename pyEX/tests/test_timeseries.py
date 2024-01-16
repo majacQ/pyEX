@@ -31,6 +31,14 @@ class TestAll:
             mock.return_value.status_code = 200
             timeSeries("NEWS", last=1)
 
+    def test_timeseries_offset(self):
+        from pyEX import timeSeries
+
+        with patch("requests.get") as mock:
+            mock.return_value = MagicMock()
+            mock.return_value.status_code = 200
+            timeSeries("NEWS", offset=1)
+
     def test_timeseriesDF(self):
         from pyEX import timeSeriesDF
 
@@ -47,4 +55,4 @@ class TestAll:
 
         c = Client(version="sandbox")
         c.timeSeries("NEWS", subattribute={"lang": "en"})
-        c.timeSeries("NEWS", subattribute=[("lang", "en")])
+        c.timeSeries("NEWS", subattribute=[("lang", "=", "en")])
