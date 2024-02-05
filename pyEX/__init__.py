@@ -22,16 +22,23 @@ from .files import *
 from .fx import *
 from .markets import *
 from .metadata import *
+from .mortgage import *
 from .options import *
 from .points import *
+from .platform import *
 from .premium import *
 from .rates import *
 from .refdata import *
-from .rules import create, delete, lookup
-from .rules import output as ruleOutput
-from .rules import pause, resume
-from .rules import rule as ruleInfo
-from .rules import rules, schema
+from .rules import (
+    createRule,
+    deleteRule,
+    lookupRule,
+    ruleOutput,
+    pauseRule,
+    resumeRule,
+    ruleInfo,
+    rules,
+)
 from .stats import *
 from .stocks import *
 from .streaming.cryptocurrency import *
@@ -42,13 +49,10 @@ from .streaming.sse import *
 from .streaming.stock import *
 from .streaming.ws import *
 from .timeseries import *
+from .treasuries import *
 
 from .client import *  # noqa: F403
-
-try:
-    from .studies import *  # noqa: F403
-except ImportError:
-    pass
+from .studies import *  # noqa: F403
 
 try:
     from .caching import *

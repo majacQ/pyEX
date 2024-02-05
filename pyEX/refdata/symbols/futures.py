@@ -13,13 +13,22 @@ from ...common import _UTC, _expire, _get, _reindex, _toDatetime
 
 
 @_expire(hour=8, tz=_UTC)
-def futuresSymbols(token="", version="stable", filter="", format="json"):
+def futuresSymbols(
+    underlying="",
+    includeExpired=None,
+    token="",
+    version="stable",
+    filter="",
+    format="json",
+):
     """This call returns an array of futures symbols that IEX Cloud supports for API calls.
 
     https://iexcloud.io/docs/api/#futures-symbols
     8am, 9am, 12pm, 1pm UTC daily
 
     Args:
+        underlying (str): Underlying asset
+        includeExpired (bool): Include expired contracts in result
         token (str): Access token
         version (str): API version
         filter (str): filters: https://iexcloud.io/docs/api/#filter-results
@@ -28,8 +37,14 @@ def futuresSymbols(token="", version="stable", filter="", format="json"):
     Returns:
         dict or DataFrame or list: result
     """
+    url = "ref-data/futures/symbols{}".format(
+        "/{}".format(underlying) if underlying else ""
+    )
+    if includeExpired is not None:
+        url += "?includeExpired={}".format(includeExpired)
+
     return _get(
-        "ref-data/futures/symbols",
+        url,
         token=token,
         version=version,
         filter=filter,
@@ -48,5 +63,9 @@ def futuresSymbolsDF(*args, **kwargs):
 
 @wraps(futuresSymbols)
 def futuresSymbolsList(*args, **kwargs):
-    kwargs["filter"] = "symbol"
-    return sorted([x["symbol"] for x in futuresSymbols(*args, **kwargs)])
+    if args or kwargs.get("underlying"):
+        grab = "symbol"
+    else:
+        grab = "underlying"
+    kwargs["filter"] = grab
+    return sorted([x[grab] for x in futuresSymbols(*args, **kwargs)])

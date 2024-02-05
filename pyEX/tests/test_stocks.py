@@ -14,6 +14,7 @@ import time
 from mock import MagicMock, patch
 
 SYMBOL = "aapl"
+SYMBOLS = "wmt, msft"
 
 atexit.register = MagicMock()
 pickle.dump = MagicMock()
@@ -305,6 +306,30 @@ class TestAll:
             mock.return_value.json = MagicMock(return_value=[])
             fundOwnershipDF("test")
 
+    def test_fundamentals(self):
+        from pyEX import Client
+
+        c = Client(version="sandbox")
+        c.fundamentals(SYMBOL)
+
+    def test_fundamentalsDF(self):
+        from pyEX import Client
+
+        c = Client(version="sandbox")
+        c.fundamentalsDF(SYMBOL)
+
+    def test_fundamentalValuations(self):
+        from pyEX import Client
+
+        c = Client(version="sandbox")
+        c.fundamentalValuations(SYMBOL)
+
+    def test_fundamentalValuationsDF(self):
+        from pyEX import Client
+
+        c = Client(version="sandbox")
+        c.fundamentalValuationsDF(SYMBOL)
+
     def test_earnings(self):
         from pyEX import earnings
 
@@ -424,6 +449,18 @@ class TestAll:
 
             dividendsDF(SYMBOL)
 
+    def test_dividendsForecast(self):
+        from pyEX import Client
+
+        c = Client(version="sandbox")
+        c.dividendsForecast(SYMBOL)
+
+    def test_dividendsForecastDF(self):
+        from pyEX import Client
+
+        c = Client(version="sandbox")
+        c.dividendsForecastDF(SYMBOL)
+
     def test_collections(self):
         from pyEX import collections
         from pyEX.common import PyEXception
@@ -449,8 +486,8 @@ class TestAll:
 
             collectionsDF("sector", "Health Care")
 
-    def test_stockSplits(self):
-        from pyEX import stockSplits
+    def test_splitsBasic(self):
+        from pyEX import splitsBasic
         from pyEX.common import PyEXception
 
         with patch("requests.get") as mock:
@@ -458,22 +495,22 @@ class TestAll:
             mock.return_value.status_code = 200
             mock.return_value.json = MagicMock(return_value=[])
 
-            stockSplits(SYMBOL)
+            splitsBasic(SYMBOL)
             try:
-                stockSplits("test", "test")
+                splitsBasic("test", "test")
                 assert False
             except PyEXception:
                 pass
 
-    def test_stockSplitsDF(self):
-        from pyEX import stockSplitsDF
+    def test_splitsBasicDF(self):
+        from pyEX import splitsBasicDF
 
         with patch("requests.get") as mock:
             mock.return_value = MagicMock()
             mock.return_value.status_code = 200
             mock.return_value.json = MagicMock(return_value=[])
 
-            stockSplitsDF(SYMBOL, "5y")
+            splitsBasicDF(SYMBOL, "5y")
 
     def test_news(self):
         from pyEX import news
@@ -610,24 +647,6 @@ class TestAll:
     #         mock.return_value.status_code = 200
     #         mock.return_value.json.return_value = {'url': 'test'}
     #         logoNotebook('test')
-
-    def test_threshold(self):
-        from pyEX import threshold
-
-        with patch("requests.get") as mock:
-            mock.return_value = MagicMock()
-            mock.return_value.status_code = 200
-            threshold()
-            threshold("20170707")
-
-    def test_thresholdDF(self):
-        from pyEX import thresholdDF
-
-        with patch("requests.get") as mock:
-            mock.return_value = MagicMock()
-            mock.return_value.status_code = 200
-            mock.return_value.json = MagicMock(return_value=[])
-            thresholdDF("test")
 
     def test_shortInterest(self):
         from pyEX import shortInterest
@@ -882,12 +901,12 @@ class TestAll:
             optionExpirations(SYMBOL)
 
     def test_options(self):
-        from pyEX import options
+        from pyEX import stockOptions
 
         with patch("requests.get") as mock:
             mock.return_value = MagicMock()
             mock.return_value.status_code = 200
-            options(SYMBOL, "test")
+            stockOptions(SYMBOL, "test")
 
     def test_optionsDF(self):
         from pyEX import Client
@@ -898,7 +917,7 @@ class TestAll:
             mock.return_value.json = MagicMock(return_value=[])
 
             c = Client(version="sandbox")
-            c.optionsDF(SYMBOL, "test")
+            c.stockOptionsDF(SYMBOL, "test")
 
     def test_bonusIssue(self):
         from pyEX import bonusIssue
@@ -1127,10 +1146,15 @@ class TestAll:
             upcomingSplits()
             upcomingIPOs()
             upcomingEvents(SYMBOL)
+            upcomingEvents(SYMBOLS)
             upcomingEarnings(SYMBOL)
+            upcomingEarnings(SYMBOLS)
             upcomingDividends(SYMBOL)
+            upcomingDividends(SYMBOLS)
             upcomingSplits(SYMBOL)
+            upcomingSplits(SYMBOLS)
             upcomingIPOs(SYMBOL)
+            upcomingIPOs(SYMBOLS)
 
     def test_upcomingEventsDF(self):
         from pyEX import (
@@ -1152,5 +1176,6 @@ class TestAll:
             upcomingEventsDF(SYMBOL)
             upcomingEarningsDF(SYMBOL)
             upcomingDividendsDF(SYMBOL)
+            upcomingDividendsDF(SYMBOLS)
             upcomingSplitsDF(SYMBOL)
             upcomingIPOsDF(SYMBOL)
